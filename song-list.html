@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <meta name="version" content="1.3.1" />
+    <title>Karaoke Book</title>
+    <style>
+      /* Normalize mobile text & sizing */
+      html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: sans-serif;
+        margin: 20px;
+        background: rgba(255, 255, 255, 1.5);
+        font-weight: 600;
+        font-size: 16px; /* keep base size stable across devices */
+        line-height: 1.5;
+      }
+
+      /* Scrollbars (unchanged) */
+      body::-webkit-scrollbar {
+        width: 8px;
+      }
+      body::-webkit-scrollbar-thumb {
+        background-color: orange;
+        border-radius: 10px;
+      }
+      body::-webkit-scrollbar-track {
+        background-color: #f0f0f0;
+      }
+
+      /* Layout */
+      .container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* desktop default */
+        gap: 30px;
+        max-width: 600px;
+        margin: 0 auto; /* center the grid */
+        padding: 0 12px; /* keep edges off on phones */
+      }
+
+      .section {
+        break-inside: avoid;
+      }
+
+      .letter {
+        color: orange;
+        font-size: 1.4em;
+        margin-bottom: 5px;
+      }
+      .artist {
+        margin-top: 10px;
+      }
+      .song {
+        margin-left: 10px;
+        display: block;
+        position: relative;
+        padding-left: 1em;
+        text-indent: 0;
+      }
+      .song::before {
+        content: "♡";
+        position: absolute;
+        left: 0;
+      }
+
+      .highlight {
+        color: orange;
+      }
+
+      .letter,
+      .artist {
+        font-weight: 900;
+      }
+      .song {
+        font-weight: 600;
+      }
+      .highlight {
+        font-weight: 500;
+      }
+
+      /* outline effect */
+      .letter {
+        text-shadow: 0 0 1px #000, 0 0 1px #000, 0 0 1px #000, 1px 1px 1px #000;
+      }
+      .song,
+      .artist {
+        color: #000;
+      }
+
+      /* font sizes */
+      .artist {
+        font-size: 1.2em;
+        margin-bottom: 3px;
+      }
+      .song {
+        font-size: 1.1em;
+        margin-bottom: 3px;
+      }
+      .highlight {
+        font-size: 1.1em;
+      }
+
+      /* --- SEARCH BAR (make responsive) --- */
+      .search-bar {
+        display: flex;
+        justify-content: center; /* center contents */
+        align-items: center;
+        gap: 10px;
+        width: min(100%, 900px); /* was fixed 800px */
+        margin: 20px auto;
+        padding: 0 12px;
+      }
+
+      .search-input {
+        display: block;
+        width: 40vw;
+        max-width: 200px;
+        min-width: 200px;
+        margin: 20px auto;
+        font-size: 1.1em; /* small tweak for mobile */
+        padding: 8px;
+        color: orange;
+        border: 2px solid orange;
+        border-radius: 8px;
+        box-sizing: border-box;
+      }
+
+      .search-bar .search-input {
+        margin: 0;
+      }
+
+      #search {
+        flex: 1 1 0;
+        max-width: 300px;
+        min-width: 160px; /* a bit smaller so it fits narrow phones */
+      }
+
+      #genre-filter {
+        width: 180px;
+        min-width: 120px;
+        background: #fff;
+        color: orange;
+        border: 2px solid orange;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 1.1em;
+        font-weight: 600;
+        outline: none;
+        transition: border-color 0.2s;
+        appearance: none;
+        cursor: pointer;
+      }
+      #genre-filter:focus {
+        border-color: #ff9800;
+        box-shadow: 0 0 0 2px rgba(255, 165, 0, 0.2);
+      }
+      #genre-filter option {
+        color: #ff9800;
+        background: #fff;
+        font-weight: 600;
+      }
+
+      #random-song {
+        background: #fff;
+        color: orange;
+        border: 2px solid orange;
+        border-radius: 8px;
+        font-size: 1.1em;
+        font-weight: 600;
+        padding: 4px 12px;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        width: 120px;
+        height: 40px;
+      }
+      #random-song:hover,
+      #random-song:focus {
+        border-color: #ff9800;
+        box-shadow: 0 0 0 2px rgba(255, 165, 0, 0.2);
+      }
+
+      /* Popup (unchanged) */
+      #popup-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #popup-modal {
+        background: #fff;
+        border: 2px solid orange;
+        border-radius: 16px;
+        box-shadow: 0 4px 32px rgba(0, 0, 0, 0.2);
+        padding: 32px 24px 24px;
+        min-width: 280px;
+        max-width: 90vw;
+        text-align: center;
+        color: orange;
+        font-size: 1.3em;
+        font-weight: 700;
+        position: relative;
+      }
+      #popup-content {
+        margin-bottom: 24px;
+        color: #000;
+        font-size: 1.2em;
+        font-weight: 600;
+      }
+      #popup-close {
+        background: #fff;
+        color: orange;
+        border: 2px solid orange;
+        border-radius: 8px;
+        font-size: 1.1em;
+        font-weight: 600;
+        padding: 8px 24px;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      #popup-close:hover,
+      #popup-close:focus {
+        border-color: #ff9800;
+        box-shadow: 0 0 0 2px rgba(255, 165, 0, 0.2);
+      }
+
+      #roulette-container {
+        height: 80px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 24px;
+        background: #fff;
+        border-radius: 8px;
+        border: 2px solid orange;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .roulette-list {
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.5s cubic-bezier(0.4, 2, 0.3, 1);
+        will-change: transform;
+      }
+      .roulette-item {
+        height: 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1em;
+        color: #000;
+        font-weight: 600;
+      }
+
+      /* ---------- Mobile tweaks ---------- */
+      @media (max-width: 640px) {
+        .container {
+          grid-template-columns: 1fr; /* 1 column on phones so it doesn’t squish */
+          max-width: 560px;
+        }
+        .letter {
+          font-size: 1.3em;
+        }
+        .artist {
+          font-size: 1.15em;
+        }
+        .song {
+          font-size: 1.05em;
+        }
+        .search-bar {
+          justify-content: space-between;
+          gap: 8px;
+          width: 100%;
+          padding: 0 12px;
+        }
+        #search {
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="search-bar">
+      <button id="random-song">랜덤 노래</button>
+      <input
+        type="text"
+        id="search"
+        placeholder="Search artist or song..."
+        class="search-input"
+      />
+      <select id="genre-filter" class="search-input">
+        <option value="">장르 선택 (전체)</option>
+      </select>
+    </div>
+    <div class="container" id="karaoke-book"></div>
+    <div id="popup-backdrop" style="display: none">
+      <div id="popup-modal">
+        <div id="popup-content"></div>
+        <button id="popup-close">닫기</button>
+      </div>
+    </div>
+
+    <script>
+      const songList = [
+        {
+          letter: "ㄱ",
+          artists: [
+            {
+              name: "강수지",
+              songs: [{ track: "보랏빛 향기", genre: "romantic" }],
+            },
+            {
+              name: "경서",
+              songs: [
+                { track: "나의 X에게", genre: "ballad" },
+                { track: "칵테일 사랑", genre: "indie" },
+              ],
+            },
+            {
+              name: "구혜선",
+              songs: [{ track: "사랑가", genre: "romantic" }],
+            },
+            {
+              name: "김광진",
+              songs: [{ track: "편지", genre: "ballad" }],
+            },
+            {
+              name: "김윤아",
+              songs: [{ track: "봄날은 간다", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "ㄴ",
+          artists: [
+            {
+              name: "남규리",
+              songs: [{ track: "깊은 밤을 날아서", genre: "romantic" }],
+            },
+            {
+              name: "뉴진스",
+              songs: [
+                { track: "Ditto", genre: "dance" },
+                { track: "Hurt", genre: "dance" },
+                { track: "Hype boy", genre: "dance" },
+              ],
+            },
+          ],
+        },
+        {
+          letter: "ㄷ",
+          artists: [
+            {
+              name: "다비치",
+              songs: [{ track: "8282(300)", genre: "dance" }],
+            },
+            {
+              name: "더 넛츠",
+              songs: [{ track: "사랑의 바보", genre: "rock" }],
+            },
+            {
+              name: "딘",
+              songs: [{ track: "인스타그램", genre: "r&b" }],
+            },
+          ],
+        },
+        {
+          letter: "ㄹ",
+          artists: [
+            {
+              name: "럼블피쉬",
+              songs: [
+                { track: "I Go", genre: "rock" },
+                { track: "내 사랑 내 곁에", genre: "ballad" },
+                { track: "비와당신", genre: "ballad" },
+              ],
+            },
+            {
+              name: "린",
+              songs: [{ track: "시간을 거슬러", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "ㅁ",
+          artists: [
+            {
+              name: "마크툽",
+              songs: [{ track: "Marry me", genre: "romantic" }],
+            },
+            {
+              name: "마틴스미스",
+              songs: [{ track: "봄 그리고 너", genre: "romantic" }],
+            },
+            {
+              name: "멜로망스",
+              songs: [
+                { track: "부끄럼", genre: "romantic" },
+                { track: "사랑인가봐", genre: "romantic" },
+                { track: "선물", genre: "romantic" },
+              ],
+            },
+          ],
+        },
+        {
+          letter: "ㅂ",
+          artists: [
+            {
+              name: "백예린",
+              songs: [
+                { track: "Rest", genre: "indie" },
+                { track: "산책", genre: "indie" },
+              ],
+            },
+            {
+              name: "벤",
+              songs: [
+                { track: "180도", genre: "ballad" },
+                { track: "꿈처럼", genre: "ballad" },
+              ],
+            },
+            {
+              name: "변진섭",
+              songs: [
+                { track: "네게 줄 수 있는건 오직 사랑뿐", genre: "ballad" },
+              ],
+            },
+            {
+              name: "뱅크",
+              songs: [{ track: "가질 수 없는 너", genre: "ballad" }],
+            },
+            {
+              name: "버스커버스커",
+              songs: [
+                { track: "골목길 어귀에서", genre: "indie" },
+                { track: "그대 입술이", genre: "indie" },
+                { track: "꽃송이가", genre: "indie" },
+                { track: "벚꽃엔딩", genre: "indie" },
+                { track: "아름다운 나이", genre: "indie" },
+              ],
+            },
+            {
+              name: "볼빨간 사춘기",
+              songs: [
+                { track: "심술", genre: "indie" },
+                { track: "우주를 줄게", genre: "indie" },
+                { track: "You(=I)", genre: "indie" },
+                { track: "품", genre: "indie" },
+                { track: "프리지아", genre: "indie" },
+              ],
+            },
+            {
+              name: "박보람",
+              songs: [{ track: "혜화동", genre: "ballad" }],
+            },
+            {
+              name: "박보영",
+              songs: [
+                { track: "나의 왕자님", genre: "romantic" },
+                { track: "아마도 그건", genre: "indie" },
+              ],
+            },
+            {
+              name: "박정현",
+              songs: [{ track: "달아요", genre: "romantic" }],
+            },
+            {
+              name: "박진영",
+              songs: [
+                { track: "Honey", genre: "dance" },
+                { track: "난 여자가 있는데", genre: "ballad" },
+              ],
+            },
+            {
+              name: "박혜경",
+              songs: [{ track: "동화", genre: "romantic" }],
+            },
+          ],
+        },
+        {
+          letter: "ㅅ",
+          artists: [
+            {
+              name: "샘김",
+              songs: [{ track: "Like a fool", genre: "r&b" }],
+            },
+            {
+              name: "서영은",
+              songs: [{ track: "좋아좋아", genre: "romantic" }],
+            },
+            {
+              name: "선우정아",
+              songs: [{ track: "도망가자", genre: "ballad" }],
+            },
+            {
+              name: "소녀시대",
+              songs: [{ track: "사랑은 선율을 타고", genre: "romantic" }],
+            },
+            {
+              name: "소란",
+              songs: [{ track: "미쳤나봐", genre: "indie" }],
+            },
+            {
+              name: "십센치10cm",
+              songs: [
+                { track: "Good night", genre: "indie" },
+                { track: "Island", genre: "indie" },
+                { track: "Pet", genre: "indie" },
+                { track: "Talk", genre: "indie" },
+                { track: "그게 아니고", genre: "indie" },
+                { track: "냄새 나는 여자", genre: "indie" },
+                { track: "너,너", genre: "indie" },
+                { track: "매트리스", genre: "indie" },
+                { track: "봄이 좋냐?", genre: "indie" },
+                { track: "비밀연애", genre: "indie" },
+                { track: "사랑은 은하수다방", genre: "indie" },
+                { track: "스토커", genre: "indie" },
+                { track: "쓰담쓰담", genre: "indie" },
+                { track: "안아줘요", genre: "indie" },
+                { track: "애상", genre: "indie" },
+                { track: "오늘 밤은 어둠이 무서워요", genre: "indie" },
+                { track: "죽겠네", genre: "indie" },
+                { track: "폰서트", genre: "indie" },
+              ],
+            },
+            {
+              name: "스트레이",
+              songs: [{ track: "너,너", genre: "ballad" }],
+            },
+            {
+              name: "신승훈",
+              songs: [{ track: "엄마야", genre: "romantic" }],
+            },
+            {
+              name: "신용재",
+              songs: [{ track: "사랑하는 그대여", genre: "ballad" }],
+            },
+            {
+              name: "신현희와김루트",
+              songs: [{ track: "오빠야", genre: "indie" }],
+            },
+            {
+              name: "심규선",
+              songs: [{ track: "부디", genre: "ballad" }],
+            },
+            {
+              name: "씨야",
+              songs: [
+                { track: "결혼할까요", genre: "romantic" },
+                { track: "사랑의인사", genre: "ballad" },
+              ],
+            },
+            {
+              name: "씨엔블루",
+              songs: [{ track: "사랑빛", genre: "romantic" }],
+            },
+          ],
+        },
+        {
+          letter: "ㅇ",
+          artists: [
+            {
+              name: "1415(일사일오)",
+              songs: [{ track: "선을 그어주던가", genre: "indie" }],
+            },
+            {
+              name: "애실리",
+              songs: [{ track: "Lucky", genre: "romantic" }],
+            },
+            {
+              name: "어쿠루브",
+              songs: [
+                { track: "고백", genre: "acoustic" },
+                { track: "그게 뭐라고", genre: "acoustic" },
+                { track: "몰라 너 싫어", genre: "acoustic" },
+                { track: "잡지 않았어", genre: "acoustic" },
+                { track: "잠깐만요", genre: "acoustic" },
+                { track: "Rainy", genre: "acoustic" },
+                { track: "하고싶은 말", genre: "acoustic" },
+              ],
+            },
+            {
+              name: "어쿠스틱콜라보",
+              songs: [
+                { track: "그대와 나 설레임", genre: "acoustic" },
+                { track: "묘해, 너와", genre: "acoustic" },
+              ],
+            },
+            {
+              name: "어반자카파",
+              songs: [
+                { track: "그 날에 우리", genre: "acoustic" },
+                { track: "커피를 마시고", genre: "acoustic" },
+              ],
+            },
+            {
+              name: "에코",
+              songs: [{ track: "행복한 나를", genre: "romantic" }],
+            },
+            {
+              name: "오왠",
+              songs: [{ track: "Picnic", genre: "acoustic" }],
+            },
+            {
+              name: "오혁",
+              songs: [{ track: "소녀", genre: "indie" }],
+            },
+            {
+              name: "원모찬스",
+              songs: [{ track: "널 생각해", genre: "indie" }],
+            },
+            {
+              name: "유미",
+              songs: [{ track: "별", genre: "ballad" }],
+            },
+            {
+              name: "유재하",
+              songs: [{ track: "사랑하기 때문에", genre: "ballad" }],
+            },
+            {
+              name: "이선희",
+              songs: [{ track: "여우비", genre: "ballad" }],
+            },
+            {
+              name: "이승기",
+              songs: [
+                { track: "내 여자라니까", genre: "ballad" },
+                { track: "Smile boy", genre: "rock" },
+              ],
+            },
+            {
+              name: "이승훈",
+              songs: [{ track: "내가 많이 사랑해요", genre: "ballad" }],
+            },
+            {
+              name: "이예준",
+              songs: [{ track: "미친소리", genre: "ballad" }],
+            },
+            {
+              name: "익스",
+              songs: [{ track: "잘 부탁드립니다", genre: "rock" }],
+            },
+            {
+              name: "아이유",
+              songs: [
+                { track: "금요일에 만나요", genre: "romantic" },
+                { track: "고양이", genre: "romantic" },
+                { track: "너랑나", genre: "dance" },
+                { track: "레옹", genre: "dance" },
+                { track: "Love poem", genre: "ballad" },
+                { track: "마음을 드려요", genre: "ballad" },
+                { track: "Modern times", genre: "dance" },
+                { track: "무릎", genre: "ballad" },
+                { track: "밤편지", genre: "ballad" },
+                { track: "복숭아", genre: "romantic" },
+                { track: "Rain drop", genre: "ballad" },
+                { track: "Someday", genre: "ballad" },
+                { track: "이런 엔딩", genre: "ballad" },
+                { track: "입술사이", genre: "romantic" },
+                { track: "좋은 날", genre: "dance" },
+                { track: "ZEZE", genre: "ballad" },
+              ],
+            },
+            {
+              name: "안예은",
+              songs: [{ track: "상사화", genre: "ballad" }],
+            },
+            {
+              name: "윤하",
+              songs: [
+                { track: "비밀번호486(300)", genre: "ballad" },
+                { track: "사건의 지평선(300)", genre: "ballad" },
+              ],
+            },
+          ],
+        },
+        {
+          letter: "ㅈ",
+          artists: [
+            {
+              name: "자이언티",
+              songs: [
+                { track: "꺼내먹어요", genre: "r&b" },
+                { track: "뻔한 멜로디", genre: "r&b" },
+              ],
+            },
+            {
+              name: "자전거탄풍경",
+              songs: [{ track: "너에게 난, 나에게 넌", genre: "indie" }],
+            },
+            {
+              name: "장윤정",
+              songs: [{ track: "약속", genre: "ballad" }],
+            },
+            {
+              name: "정엽",
+              songs: [{ track: "Nothing better", genre: "r&b" }],
+            },
+            {
+              name: "제이레빗",
+              songs: [
+                { track: "Happy things", genre: "indie" },
+                { track: "요즘 너 말야", genre: "indie" },
+              ],
+            },
+            {
+              name: "조이",
+              songs: [
+                { track: "Happy birthday to you", genre: "romantic" },
+                { track: "내게 오는 길", genre: "ballad" },
+                { track: "안녕", genre: "dance" },
+              ],
+            },
+            {
+              name: "조용필",
+              songs: [{ track: "단발머리", genre: "dance" }],
+            },
+            {
+              name: "쥬얼리",
+              songs: [{ track: "니가 참 좋아", genre: "dance" }],
+            },
+          ],
+        },
+        {
+          letter: "ㅊ",
+          artists: [
+            {
+              name: "참깨와 솜사탕",
+              songs: [{ track: "키스미", genre: "indie" }],
+            },
+            {
+              name: "최유리",
+              songs: [
+                { track: "바다", genre: "indie" },
+                { track: "숲", genre: "indie" },
+              ],
+            },
+            {
+              name: "치즈",
+              songs: [{ track: "Mood indigo", genre: "indie" }],
+            },
+          ],
+        },
+        {
+          letter: "ㅋ",
+          artists: [
+            {
+              name: "QWER",
+              songs: [
+                { track: "고민중독", genre: "rock" },
+                { track: "내 이름 맑음", genre: "rock" },
+              ],
+            },
+            {
+              name: "케이시",
+              songs: [{ track: "손을 잡아줘", genre: "ballad" }],
+            },
+            {
+              name: "크러쉬",
+              songs: [
+                { track: "가끔", genre: "r&b" },
+                { track: "미워", genre: "r&b" },
+              ],
+            },
+          ],
+        },
+        {
+          letter: "ㅌ",
+          artists: [
+            {
+              name: "태연",
+              songs: [{ track: "그대라는 시", genre: "ballad" }],
+            },
+            {
+              name: "팀",
+              songs: [
+                { track: "사랑한 만큼", genre: "ballad" },
+                { track: "사랑합니다", genre: "ballad" },
+              ],
+            },
+            {
+              name: "티파니",
+              songs: [{ track: "나 혼자서", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "ㅍ",
+          artists: [
+            {
+              name: "40",
+              songs: [
+                { track: "듣는편지", genre: "r&b" },
+                { track: "봄을 노래하다", genre: "r&b" },
+              ],
+            },
+            {
+              name: "포맨",
+              songs: [{ track: "Baby baby", genre: "ballad" }],
+            },
+            {
+              name: "포지션",
+              songs: [{ track: "하루", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "ㅎ",
+          artists: [
+            {
+              name: "허각",
+              songs: [{ track: "1440", genre: "romantic" }],
+            },
+            {
+              name: "혁오",
+              songs: [{ track: "위잉위잉", genre: "indie" }],
+            },
+          ],
+        },
+        {
+          letter: "A",
+          artists: [
+            {
+              name: "Ai Otsuka (오오츠카 아이)",
+              songs: [{ track: "大好き (다이스키)", genre: "jpop" }],
+            },
+            {
+              name: "Asher Book",
+              songs: [{ track: "Try", genre: "pop" }],
+            },
+          ],
+        },
+        {
+          letter: "C",
+          artists: [
+            {
+              name: "ChoQMay (초큐메이)",
+              songs: [
+                {
+                  track: "君の彼氏になりたい (너의 연인이 되고 싶어)",
+                  genre: "jpop",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          letter: "F",
+          artists: [
+            {
+              name: "Frank Sinatra",
+              songs: [{ track: "Fly me to the moon", genre: "ballad" }],
+            },
+            {
+              name: "Frankie Valli",
+              songs: [{ track: "Can't take my eyes off you", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "G",
+          artists: [
+            {
+              name: "Glen Hansard & Marketa Irglova",
+              songs: [{ track: "Falling Slowly", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "J",
+          artists: [
+            {
+              name: "Justin Bieber",
+              songs: [{ track: "Baby", genre: "pop" }],
+            },
+          ],
+        },
+        {
+          letter: "K",
+          artists: [
+            {
+              name: "Karina",
+              songs: [{ track: "Slow motion", genre: "pop" }],
+            },
+            {
+              name: "Kelly Clarkson",
+              songs: [{ track: "White Christmas", genre: "pop" }],
+            },
+            {
+              name: "Kristen Bell, Santino Fontana",
+              songs: [{ track: "Love is an open door", genre: "pop" }],
+            },
+          ],
+        },
+        {
+          letter: "M",
+          artists: [
+            {
+              name: "M.Y.M.P",
+              songs: [{ track: "Say you love me", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "N",
+          artists: [
+            {
+              name: "Natalie Cole",
+              songs: [{ track: "L.O.V.E", genre: "ballad" }],
+            },
+          ],
+        },
+        {
+          letter: "S",
+          artists: [
+            {
+              name: "Sixpence None The Richer",
+              songs: [{ track: "Kiss Me", genre: "pop" }],
+            },
+            {
+              name: "Sneha",
+              songs: [{ track: "So this is love", genre: "pop" }],
+            },
+            {
+              name: "Stephanie Poetri",
+              songs: [{ track: "I love you 3000", genre: "pop" }],
+            },
+          ],
+        },
+        {
+          letter: "Y",
+          artists: [
+            {
+              name: "Yuuri",
+              songs: [{ track: "ベテルギウス (베텔기우스)", genre: "jpop" }],
+            },
+          ],
+        },
+      ];
+
+      const genreCategory = {
+        ballad: "발라드",
+        jpop: "J-Pop",
+        pop: "팝",
+        dance: "댄스",
+        romantic: "로맨틱",
+        indie: "인디",
+        "r&b": "R&B",
+        acoustic: "어쿠스틱",
+        rock: "록",
+      };
+
+      const container = document.getElementById("karaoke-book");
+      const searchInput = document.getElementById("search");
+      const genreFilter = document.getElementById("genre-filter");
+
+      function render(filteredList) {
+        container.innerHTML = "";
+        filteredList.forEach((section) => {
+          const sectionDiv = document.createElement("div");
+          sectionDiv.className = "section";
+
+          const letter = document.createElement("div");
+          letter.className = "letter";
+          letter.textContent = `<${section.letter}>`;
+          sectionDiv.appendChild(letter);
+
+          section.artists.forEach((artist) => {
+            const artistDiv = document.createElement("div");
+            artistDiv.className = "artist";
+            artistDiv.textContent = artist.name;
+            sectionDiv.appendChild(artistDiv);
+
+            artist.songs.forEach((song) => {
+              const songDiv = document.createElement("div");
+              songDiv.className = "song";
+              // Always use song.track (song is always an object now)
+              const track = song.track;
+              const match = track.match(/^(.*?)(\(|（)(.*?)(\)|）)$/);
+              if (match && match[3].trim() !== "=I") {
+                songDiv.innerHTML = `${match[1].trim()} <span class="highlight">(${match[3].trim()})</span>`;
+              } else {
+                songDiv.textContent = track;
+              }
+              sectionDiv.appendChild(songDiv);
+            });
+          });
+
+          container.appendChild(sectionDiv);
+        });
+      }
+
+      function filterSongs(query, genre) {
+        const hasQuery = query && query.trim() !== "";
+        const hasGenre = genre && genre.trim() !== "";
+
+        if (!hasQuery && !hasGenre) return songList;
+
+        const lowerQuery = hasQuery ? query.toLowerCase() : null;
+
+        return songList
+          .map((section) => {
+            const letterMatch =
+              hasQuery && section.letter.toLowerCase().includes(lowerQuery);
+
+            const filteredArtists = section.artists
+              .map((artist) => {
+                let filteredSongs = artist.songs;
+
+                // Filter by genre if selected
+                if (hasGenre) {
+                  filteredSongs = filteredSongs.filter(
+                    (song) => song.genre === genre
+                  );
+                }
+
+                // Filter by query if entered
+                if (hasQuery) {
+                  filteredSongs = filteredSongs.filter((song) =>
+                    song.track.toLowerCase().includes(lowerQuery)
+                  );
+                }
+
+                if (
+                  hasQuery &&
+                  artist.name.toLowerCase().includes(lowerQuery)
+                ) {
+                  // If artist name matches, include all genre-filtered songs
+                  return {
+                    ...artist,
+                    songs: hasGenre ? filteredSongs : artist.songs,
+                  };
+                } else if (filteredSongs.length > 0) {
+                  return { ...artist, songs: filteredSongs };
+                }
+                return null;
+              })
+              .filter(Boolean);
+
+            if (letterMatch && section.artists.length > 0 && !hasGenre) {
+              return { ...section };
+            } else if (filteredArtists.length > 0) {
+              return { ...section, artists: filteredArtists };
+            }
+            return null;
+          })
+          .filter(Boolean);
+      }
+
+      const genreEntries = Object.entries(genreCategory).sort((a, b) => {
+        const isAKorean = /[가-힣]/.test(a[1]);
+        const isBKorean = /[가-힣]/.test(b[1]);
+        if (isAKorean && !isBKorean) return -1;
+        if (!isAKorean && isBKorean) return 1;
+        return a[1].localeCompare(b[1], isAKorean ? "ko" : "en");
+      });
+      genreEntries.forEach(([key, value]) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = value;
+        genreFilter.appendChild(option);
+      });
+
+      searchInput.addEventListener("input", function () {
+        const filtered = filterSongs(this.value, genreFilter.value);
+        render(filtered);
+      });
+
+      genreFilter.addEventListener("change", function () {
+        const filtered = filterSongs(searchInput.value, this.value);
+        render(filtered);
+      });
+
+      render(songList);
+
+      document
+        .getElementById("random-song")
+        .addEventListener("click", function () {
+          const allSongs = songList.flatMap((section) =>
+            section.artists.flatMap((artist) =>
+              artist.songs.map((song) => ({
+                artist: artist.name,
+                track: song.track,
+              }))
+            )
+          );
+
+          // Prepare roulette items (shuffle and repeat for effect)
+          const rouletteItems = [];
+          for (let i = 0; i < 30; i++) {
+            const song = allSongs[Math.floor(Math.random() * allSongs.length)];
+            rouletteItems.push(song);
+          }
+          // Pick the final random song
+          const finalSong =
+            allSongs[Math.floor(Math.random() * allSongs.length)];
+          rouletteItems.push(finalSong);
+
+          // Build roulette HTML
+          const rouletteList = rouletteItems
+            .map(
+              (song) =>
+                `<div class="roulette-item">
+          <span style="font-weight:900;color:orange;">${song.artist}</span>
+          <span style="font-weight:600;">${song.track}</span>
+        </div>`
+            )
+            .join("");
+
+          const popupBackdrop = document.getElementById("popup-backdrop");
+          const popupContent = document.getElementById("popup-content");
+          popupBackdrop.style.display = "flex"; // Show popup first!
+
+          popupContent.innerHTML = `
+    <div style="font-size:1.3em;color:orange;margin-bottom:10px;">랜덤 노래</div>
+    <div id="roulette-container">
+      <div class="roulette-list">
+        ${rouletteList}
+      </div>
+    </div>
+  `;
+
+          // Animate roulette (smooth easing)
+          const listElem = popupContent.querySelector(".roulette-list");
+          const itemHeight = 80; // px, must match .roulette-item height
+          let spins = 0;
+          let maxSpins = 70;
+          let position = itemHeight * (rouletteItems.length - 1); // Start at the bottom
+          let speed = 0.7; // initial speed (pixels/ms)
+
+          // Show the first song immediately
+          listElem.style.transform = `translateY(-${position}px)`;
+
+          // Force a browser repaint so the first song is visible before animation
+          void listElem.offsetHeight;
+
+          // Start animation after a short timeout to guarantee the first song is rendered
+          setTimeout(function () {
+            function animateRoulette(timestamp) {
+              const elapsed = 16; // ~60fps for first frame
+              if (spins < maxSpins) {
+                if (spins > maxSpins - 10) {
+                  speed *= 0.97;
+                }
+                position -= speed * elapsed;
+                if (position < 0) position = 0;
+                listElem.style.transform = `translateY(-${position}px)`;
+                spins += (speed * elapsed) / itemHeight;
+                requestAnimationFrame(animateRoulette);
+              } else {
+                listElem.style.transition =
+                  "transform 0.7s cubic-bezier(.4,2,.3,1)";
+                listElem.style.transform = `translateY(0px)`;
+                setTimeout(() => {
+                  popupContent.innerHTML = `
+            <div style="font-size:1.3em;color:orange;margin-bottom:10px;">랜덤 노래</div>
+            <div style="font-size:1.1em;color:#000;">
+              <span style="font-weight:900;">${finalSong.artist}</span><br>
+              <span style="font-weight:600;">${finalSong.track}</span>
+            </div>
+          `;
+                }, 1200);
+              }
+            }
+            animateRoulette(performance.now());
+          }, 10); // 10ms is enough for browser to render the first song
+        });
+
+      // Close popup
+      document
+        .getElementById("popup-close")
+        .addEventListener("click", function () {
+          document.getElementById("popup-backdrop").style.display = "none";
+        });
+    </script>
+  </body>
+</html>
